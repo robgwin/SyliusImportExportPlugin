@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\ProductImageInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductTaxonInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
+use Sylius\Component\Taxation\Model\TaxCategoryInterface;
 use Sylius\Component\Core\Model\Taxon;
 use Sylius\Component\Core\Repository\ProductRepositoryInterface;
 use Sylius\Component\Product\Factory\ProductFactoryInterface;
@@ -82,6 +83,8 @@ final class ProductProcessor implements ResourceProcessorInterface
     private $productVariantFactory;
     /** @var RepositoryInterface */
     private $productVariantRepository;
+    /** $var RepositoryInterface */
+    private $taxCategoryRepository;
 
     public function __construct(
         ProductFactoryInterface $productFactory,
@@ -101,6 +104,7 @@ final class ProductProcessor implements ResourceProcessorInterface
         ProductTaxonRepository $productTaxonRepository,
         ProductImageRepositoryInterface $productImageRepository,
         RepositoryInterface $productVariantRepository,
+        RepositoryInterface $taxCategoryRepository,
         RepositoryInterface $channelPricingRepository,
         ImageTypesProviderInterface $imageTypesProvider,
         SlugGeneratorInterface $slugGenerator,
@@ -129,6 +133,7 @@ final class ProductProcessor implements ResourceProcessorInterface
         $this->imageTypesProvider = $imageTypesProvider;
         $this->productVariantFactory = $productVariantFactory;
         $this->productVariantRepository = $productVariantRepository;
+        $this->taxCategoryRepository = $taxCategoryRepository;
         $this->channelPricingFactory = $channelPricingFactory;
         $this->channelPricingRepository = $channelPricingRepository;
     }
@@ -138,11 +143,14 @@ final class ProductProcessor implements ResourceProcessorInterface
      */
     public function process(array $data): void
     {
+
         $this->attrCode = $this->attributeCodesProvider->getAttributeCodesList();
         $this->imageCode = $this->imageTypesProvider->getProductImagesCodesWithPrefixList();
 
         $this->headerKeys = \array_merge($this->headerKeys, $this->attrCode);
         $this->headerKeys = \array_merge($this->headerKeys, $this->imageCode);
+        $this->headerKeys[] = "Inventory";
+        $this->headerKeys[] = "Tax_category";
         $this->metadataValidator->validateHeaders($this->headerKeys, $data);
 
         $product = $this->getProduct($data['Code']);
@@ -182,6 +190,13 @@ final class ProductProcessor implements ResourceProcessorInterface
         }
 
         return $productVariant;
+    }
+
+    private function getTaxCategory(string $code)
+    {
+        /** @var taxCategoryInterface|null $taxCategory */
+        $taxCategory = $this->taxCategoryRepository->findOneBy(['code' => $code]);
+        return $taxCategory;
     }
 
     private function setMainTaxon(ProductInterface $product, array $data): void
@@ -257,6 +272,11 @@ final class ProductProcessor implements ResourceProcessorInterface
         $productVariant = $this->getProductVariant($product->getCode());
         $productVariant->setCurrentLocale($data['Locale']);
         $productVariant->setName(substr($data['Name'], 0, 255));
+        $productVariant->setOnHand(intval($data['Inventory']));
+        $productVariant->setTracked(true);
+        $taxCategory = $this->getTaxCategory($data['Tax_category']);
+        if ($taxCategory != null)
+            $productVariant->setTaxCategory($taxCategory);
 
         $channels = \explode('|', $data['Channels']);
         foreach ($channels as $channelCode) {
