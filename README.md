@@ -1,4 +1,5 @@
 This is a fork of https://github.com/FriendsOfSylius/SyliusImportExportPlugin
+
 It has been customized for inGem's specific needs.
 
 Installation instructions (and an additional CSV conversion script) are here:
