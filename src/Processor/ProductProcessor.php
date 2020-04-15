@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\ProductImageInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductTaxonInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
+use Sylius\Component\Core\Model\ProductOptionInterface;
 use Sylius\Component\Taxation\Model\TaxCategoryInterface;
 use Sylius\Component\Core\Model\Taxon;
 use Sylius\Component\Core\Repository\ProductRepositoryInterface;
@@ -83,6 +84,8 @@ final class ProductProcessor implements ResourceProcessorInterface
     private $productVariantFactory;
     /** @var RepositoryInterface */
     private $productVariantRepository;
+    /** @var RepositoryInterface */
+    private $productOptionRepository;
     /** $var RepositoryInterface */
     private $taxCategoryRepository;
 
@@ -104,6 +107,7 @@ final class ProductProcessor implements ResourceProcessorInterface
         ProductTaxonRepository $productTaxonRepository,
         ProductImageRepositoryInterface $productImageRepository,
         RepositoryInterface $productVariantRepository,
+        RepositoryInterface $productOptionRepository,
         RepositoryInterface $taxCategoryRepository,
         RepositoryInterface $channelPricingRepository,
         ImageTypesProviderInterface $imageTypesProvider,
@@ -133,6 +137,7 @@ final class ProductProcessor implements ResourceProcessorInterface
         $this->imageTypesProvider = $imageTypesProvider;
         $this->productVariantFactory = $productVariantFactory;
         $this->productVariantRepository = $productVariantRepository;
+        $this->productOptionRepository = $productOptionRepository;
         $this->taxCategoryRepository = $taxCategoryRepository;
         $this->channelPricingFactory = $channelPricingFactory;
         $this->channelPricingRepository = $channelPricingRepository;
@@ -144,19 +149,20 @@ final class ProductProcessor implements ResourceProcessorInterface
     public function process(array $data): void
     {
 
-        $this->attrCode = $this->attributeCodesProvider->getAttributeCodesList();
+        $this->attrCode = array(); //$this->attributeCodesProvider->getAttributeCodesList();
         $this->imageCode = $this->imageTypesProvider->getProductImagesCodesWithPrefixList();
 
         $this->headerKeys = \array_merge($this->headerKeys, $this->attrCode);
         $this->headerKeys = \array_merge($this->headerKeys, $this->imageCode);
-        $this->headerKeys[] = "Inventory";
-        $this->headerKeys[] = "Tax_category";
         $this->metadataValidator->validateHeaders($this->headerKeys, $data);
 
         $product = $this->getProduct($data['Code']);
 
         $this->setDetails($product, $data);
-        $this->setVariant($product, $data);
+        if (empty($data['Options'])) // simple product
+            $this->setVariant($product, $data);
+        else // configurable product
+            $this->setOptions($product, $data);
         $this->setAttributesData($product, $data);
         $this->setMainTaxon($product, $data);
         $this->setTaxons($product, $data);
@@ -267,6 +273,11 @@ final class ProductProcessor implements ResourceProcessorInterface
         $product->setSlug($product->getSlug() ?: $this->slugGenerator->generate($product->getName()));
     }
 
+    private function setOptions(ProductInterface $product, array $data): void
+    {
+        $options = \explode('|,', $data['Options']);
+        // to do: set the provided options (currently, any non-empty option simply imports the product as "configurable")
+    }
     private function setVariant(ProductInterface $product, array $data): void
     {
         $productVariant = $this->getProductVariant($product->getCode());

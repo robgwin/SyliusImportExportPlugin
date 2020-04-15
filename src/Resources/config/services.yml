@@ -345,13 +345,14 @@ services:
             - '@sylius.repository.product_taxon'
             - '@sylius.repository.product_image'
             - '@sylius.repository.product_variant'
+            - '@sylius.repository.product_option'
             - '@sylius.repository.tax_category'
             - '@sylius.repository.channel_pricing'
             - '@sylius.service.product_image_code'
             - "@sylius.generator.slug"
             - "@sylius.importers_transformer_pool"
             - "@doctrine.orm.entity_manager"
-            - ['Code', 'Locale', 'Name', 'Description', 'Short_description', 'Meta_description', 'Meta_keywords', 'Main_taxon', 'Taxons', 'Channels', 'Enabled', 'Price', 'Inventory', 'Tax_category']
+            - ['Code', 'Locale', 'Name', 'Description', 'Short_description', 'Meta_description', 'Meta_keywords', 'Main_taxon', 'Taxons', 'Channels', 'Enabled', 'Price', 'Inventory', 'Tax_category', 'Options']
 
     sylius.class_metadata.product_image:
         class: Doctrine\ORM\Mapping\ClassMetadata
