@@ -60,6 +60,9 @@ class OrderResourcePlugin extends ResourcePlugin
             $items = $this->getItemsAndCount($resource);
 
             $this->addOrderItemData($items, $resource);
+
+            $this->addOrderTaxAmount($items, $resource);
+
         }
     }
 
@@ -73,6 +76,8 @@ class OrderResourcePlugin extends ResourcePlugin
         $this->addDataForResource($resource, 'Token_value', $resource->getTokenValue());
         $this->addDataForResource($resource, 'Customer_ip', $resource->getCustomerIp());
         $this->addDataForResource($resource, 'Notes', $resource->getNotes());
+        $this->addDataForResource($resource, 'Shipping_amount', number_format($resource->getAdjustmentsTotal('shipping')/100, 2));
+        $this->addDataForResource($resource, 'Donation', number_format($resource->getAdjustmentsTotal('order_donation')/100, 2));
     }
 
     private function addCustomerData(OrderInterface $resource): void
@@ -130,9 +135,11 @@ class OrderResourcePlugin extends ResourcePlugin
                 $items[$product->getId()] = [
                     'name' => $product->getName(),
                     'count' => 0,
+                    'tax' => 0,
                 ];
             }
             $items[$product->getId()]['count'] += $orderItem->getQuantity();
+            $items[$product->getId()]['tax'] += $orderItem->getAdjustmentsTotalRecursively('tax');
         }
 
         return $items;
@@ -150,6 +157,14 @@ class OrderResourcePlugin extends ResourcePlugin
         }
 
         $this->addDataForResource($resource, 'Product_list', $str);
+    }
+
+    private function addOrderTaxAmount(array $items, OrderInterface $resource): void
+    {
+        $taxTotal = 0;
+        foreach ($items as $item)
+            $taxTotal += $item['tax'];
+        $this->addDataForResource($resource, 'Tax', number_format($taxTotal/100, 2));
     }
 
     protected function findResources(array $idsToExport): array
