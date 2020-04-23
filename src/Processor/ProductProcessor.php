@@ -158,19 +158,25 @@ final class ProductProcessor implements ResourceProcessorInterface
 
         $product = $this->getProduct($data['Code']);
 
-        $this->setDetails($product, $data);
-        if (empty($data['Options'])) // simple product
+        if (empty($data['Variant_code']) || $data['Variant_code']=='__SIMPLE__'){
+            // no explicit variant code: this row is a product
+            $this->setDetails($product, $data);
+            if (!empty($data['Variant_code'])){
+                // a simple product gets a single variant (a configurable product must have additional variant rows)
+                $data['Variant_code'] = $data['Code'];
+                $this->setVariant($product, $data);
+            }
+            $this->setAttributesData($product, $data);
+            $this->setMainTaxon($product, $data);
+            $this->setTaxons($product, $data);
+            $this->setChannel($product, $data);
+            $this->setImage($product, $data);
+        } else {
+            // explicit variant code: this row is just a variant of an existing product
             $this->setVariant($product, $data);
-        else // configurable product
-            $this->setOptions($product, $data);
-        $this->setAttributesData($product, $data);
-        $this->setMainTaxon($product, $data);
-        $this->setTaxons($product, $data);
-        $this->setChannel($product, $data);
-        $this->setImage($product, $data);
-
+        }
         $this->productRepository->add($product);
-    }
+   }
 
     private function getProduct(string $code): ProductInterface
     {
@@ -273,14 +279,9 @@ final class ProductProcessor implements ResourceProcessorInterface
         $product->setSlug($product->getSlug() ?: $this->slugGenerator->generate($product->getName()));
     }
 
-    private function setOptions(ProductInterface $product, array $data): void
-    {
-        $options = \explode('|,', $data['Options']);
-        // to do: set the provided options (currently, any non-empty option simply imports the product as "configurable")
-    }
     private function setVariant(ProductInterface $product, array $data): void
     {
-        $productVariant = $this->getProductVariant($product->getCode());
+        $productVariant = $this->getProductVariant($data['Variant_code']);
         $productVariant->setCurrentLocale($data['Locale']);
         $productVariant->setName(substr($data['Name'], 0, 255));
         $productVariant->setOnHand(intval($data['Inventory']));
