@@ -1,9 +1,8 @@
 ## This repo is deprecated
 
 InGem's import/export plugin is now maintained here:
-https://gitlab.com/challengersports/ingem/shop/plugin-import-export-data
 
-Use that for all new installs.
+https://gitlab.com/challengersports/ingem/shop/plugin-import-export-data
 
 ## Migration
 
